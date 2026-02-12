@@ -27,13 +27,18 @@ class SQLiteGenerator:
         );
         """)
         cursor.execute("""
-        INSERT OR IGNORE INTO translations (translation, title, license)
+        INSERT OR REPLACE INTO translations (translation, title, license)
         VALUES (?, ?, ?);
         """, (translation, translation_name, license_info))
 
+        # Drop existing tables for this translation to avoid duplicates on re-runs
+        cursor.execute(f"DROP TABLE IF EXISTS {translation}_books;")
+        cursor.execute(f"DROP TABLE IF EXISTS {translation}_verses;")
+        cursor.execute(f"DROP TABLE IF EXISTS {translation}_footnotes;")
+
         # Create books table
         cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {translation}_books (
+        CREATE TABLE {translation}_books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT
         );
@@ -45,7 +50,7 @@ class SQLiteGenerator:
 
         # Create verses table
         cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {translation}_verses (
+        CREATE TABLE {translation}_verses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             book_id INTEGER,
             chapter INTEGER,
@@ -67,7 +72,7 @@ class SQLiteGenerator:
         # Generate footnotes table if the source data has footnotes
         if 'footnotes' in prepared_data and len(prepared_data['footnotes']) > 0:
             cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {translation}_footnotes (
+            CREATE TABLE {translation}_footnotes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book TEXT,
                 chapter INTEGER,
